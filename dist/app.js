@@ -42,6 +42,11 @@ const liveBrowserFrame = document.querySelector("#live-browser-frame");
 const liveBrowserLink = document.querySelector("#live-browser-link");
 const liveBrowserSource = document.querySelector("#live-browser-source");
 const stopAgents = document.querySelector("#stop-agents");
+const monitorOffer = document.querySelector("#monitor-offer");
+const monitorEmail = document.querySelector("#monitor-email");
+const monitorFrequency = document.querySelector("#monitor-frequency");
+const createMonitorButton = document.querySelector("#create-monitor");
+const monitorStatus = document.querySelector("#monitor-status");
 let currentPreferences = null;
 let currentSearchController = null;
 let activeRunIds = new Set();
@@ -77,7 +82,7 @@ function getPreferences() {
     district: choice === "other" ? String(data.get("other-district") || "").trim() : recommended,
     budgetMin: Number(data.get("budget-min")), budgetMax: Number(data.get("budget-max")),
     budgetUnit: String(data.get("budget-unit")), living: String(data.get("living") || ""),
-    email: String(data.get("email") || "").trim(), frequency: String(data.get("frequency"))
+    email: monitorEmail.value.trim(), frequency: monitorFrequency.value
   };
 }
 
@@ -85,7 +90,6 @@ function validatePreferences(prefs) {
   if (!prefs.university || !prefs.district || !prefs.living) return "Please complete the university, district and living-arrangement questions.";
   if (!Number.isFinite(prefs.budgetMin) || !Number.isFinite(prefs.budgetMax) || prefs.budgetMin < 0 || prefs.budgetMax <= 0) return "Please enter a valid minimum and maximum budget.";
   if (prefs.budgetMin > prefs.budgetMax) return "Your minimum budget cannot be higher than your maximum.";
-  if (prefs.frequency !== "Do not monitor" && !prefs.email) return "Add an email address, or choose ‘Do not monitor’.";
   return "";
 }
 
@@ -99,7 +103,9 @@ function prepareResults(prefs) {
       <div class="source-agent-head"><span class="source-icon">${source.initials}</span><span><strong>${source.name}</strong><small>${source.note}</small></span><span class="source-status" data-state="waiting">Waiting</span></div>
       <p class="source-note">The browser agent will apply your district, budget and household preferences.</p><div class="listing-list" hidden></div>
     </section>`).join("");
-  document.querySelector("#monitor-status").textContent = prefs.frequency === "Do not monitor" ? "Monitoring is off. This search runs only while the app is open." : `Monitor preference saved: check ${prefs.frequency.toLowerCase()} and email ${prefs.email}.`;
+  monitorOffer.hidden = true;
+  monitorStatus.hidden = true;
+  document.querySelector("#monitor-price-summary").textContent = `TinyFish will only monitor ${prefs.district} for ${prefs.living.toLowerCase()} priced £${prefs.budgetMin.toLocaleString()}–£${prefs.budgetMax.toLocaleString()} ${prefs.budgetUnit}.`;
   document.querySelector("#results").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
@@ -125,6 +131,7 @@ async function runAllAgents(prefs) {
   searchButton.disabled = false; searchButton.textContent = "Run TinyFish agents again";
   agentSummary.textContent = currentSearchController.signal.aborted ? `Search stopped · ${found} listings kept` : `Search complete · ${found} listings found`;
   stopAgents.hidden = true;
+  monitorOffer.hidden = false;
 }
 
 async function runSourceAgent(source, prefs, signal) {
@@ -166,8 +173,15 @@ async function runSourceAgent(source, prefs, signal) {
 
 function normalizeResult(value) { if (!value) return { listings: [] }; if (typeof value === "string") { try { return JSON.parse(value); } catch { return { listings: [], search_notes: value }; } } return value; }
 
+function weeklyBudgetRange(prefs) {
+  return prefs.budgetUnit === "per month"
+    ? { min: prefs.budgetMin * 12 / 52, max: prefs.budgetMax * 12 / 52 }
+    : { min: prefs.budgetMin, max: prefs.budgetMax };
+}
+
 function renderListings(container, listings) {
-  const valid = listings.filter(item => item && item.url && item.title); container.hidden = !valid.length;
+  const range = weeklyBudgetRange(currentPreferences);
+  const valid = listings.filter(item => item && item.url && item.title && Number.isFinite(Number(item.weekly_price_gbp)) && Number(item.weekly_price_gbp) >= range.min && Number(item.weekly_price_gbp) <= range.max); container.hidden = !valid.length;
   container.innerHTML = valid.map(item => { const price = item.displayed_price || (item.weekly_price_gbp ? `£${Math.round(item.weekly_price_gbp)} pw` : "Price unavailable"); const meta = [item.location, item.accommodation_type, item.bills_included, item.available_from].filter(Boolean).join(" · "); return `<a class="listing-card" href="${safeUrl(item.url)}" target="_blank" rel="noreferrer"><strong>${escapeHtml(item.title)}</strong><span class="listing-price">${escapeHtml(price)}</span><span class="listing-meta">${escapeHtml(meta || "Open listing for details")}</span></a>`; }).join("");
   return valid.length;
 }
@@ -179,6 +193,28 @@ stopAgents.addEventListener("click", async () => {
   if (currentSearchController) currentSearchController.abort();
   const runIds = [...activeRunIds]; activeRunIds.clear();
   await Promise.allSettled(runIds.map(runId => fetch("/api/agent/cancel", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ runId }) })));
+});
+
+createMonitorButton.addEventListener("click", async () => {
+  if (!currentPreferences) return;
+  const email = monitorEmail.value.trim();
+  if (!email || !monitorEmail.checkValidity()) {
+    monitorStatus.hidden = false; monitorStatus.dataset.state = "error"; monitorStatus.textContent = "Enter a valid email address for your saved alert preference."; monitorEmail.focus(); return;
+  }
+  currentPreferences.email = email;
+  currentPreferences.frequency = monitorFrequency.value;
+  createMonitorButton.disabled = true; createMonitorButton.textContent = "Creating monitor…";
+  monitorStatus.hidden = false; monitorStatus.dataset.state = ""; monitorStatus.textContent = "Creating a TinyFish topic monitor and its first baseline check…";
+  try {
+    const response = await fetch("/api/monitor/create", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ preferences: currentPreferences }) });
+    if (!response.ok) throw new Error(await readError(response));
+    const data = await response.json();
+    monitorStatus.innerHTML = `Monitor created for <strong>${escapeHtml(currentPreferences.frequency.toLowerCase())}</strong> checks using the same price range. To receive emails, <a href="${safeUrl(data.dashboard_url)}" target="_blank" rel="noreferrer">confirm delivery in TinyFish</a>.`;
+    createMonitorButton.textContent = "Monitor created";
+  } catch (error) {
+    monitorStatus.dataset.state = "error"; monitorStatus.textContent = error.message || "The monitor could not be created.";
+    createMonitorButton.disabled = false; createMonitorButton.textContent = "Create TinyFish monitor";
+  }
 });
 
 function preferencesMarkdown(prefs) {
@@ -193,8 +229,8 @@ function safeUrl(value) { try { const url = new URL(value); return url.protocol 
 
 function registerWebMcpTools() {
   const context = document.modelContext; if (!context?.registerTool) return;
-  const schema = { type: "object", properties: { university: { type: "string" }, recommendedDistrict: { type: "string" }, district: { type: "string" }, budgetMin: { type: "number" }, budgetMax: { type: "number" }, budgetUnit: { enum: ["per week", "per month"] }, living: { enum: ["Live alone", "Share with others", "Either"] }, email: { type: "string" }, frequency: { enum: ["Daily", "Twice a week", "Weekly", "Do not monitor"] } }, required: ["university", "district", "budgetMin", "budgetMax", "budgetUnit", "living", "frequency"], additionalProperties: false };
-  context.registerTool({ name: "set_student_accommodation_preferences", title: "Set accommodation preferences", description: "Fill the visible accommodation form and start TinyFish browser-agent searches.", inputSchema: schema, annotations: { readOnlyHint: false, untrustedContentHint: false }, execute(input) { university.value = input.university; updateRecommendation(); const isRecommended = input.district === input.recommendedDistrict; document.querySelector(`input[name="district-choice"][value="${isRecommended ? "recommended" : "other"}"]`).click(); otherDistrict.value = isRecommended ? "" : input.district; document.querySelector("#budget-min").value = input.budgetMin; document.querySelector("#budget-max").value = input.budgetMax; document.querySelector("#budget-unit").value = input.budgetUnit; document.querySelector(`input[name="living"][value="${input.living}"]`).click(); document.querySelector("#email").value = input.email || ""; document.querySelector("#frequency").value = input.frequency; form.requestSubmit(); return { status: "agents_started", district: input.district, sources: sources.map(source => source.name) }; } });
+  const schema = { type: "object", properties: { university: { type: "string" }, recommendedDistrict: { type: "string" }, district: { type: "string" }, budgetMin: { type: "number" }, budgetMax: { type: "number" }, budgetUnit: { enum: ["per week", "per month"] }, living: { enum: ["Live alone", "Share with others", "Either"] }, email: { type: "string" }, frequency: { enum: ["Daily", "Twice a week", "Weekly"] } }, required: ["university", "district", "budgetMin", "budgetMax", "budgetUnit", "living"], additionalProperties: false };
+  context.registerTool({ name: "set_student_accommodation_preferences", title: "Set accommodation preferences", description: "Fill the visible accommodation form and start TinyFish browser-agent searches.", inputSchema: schema, annotations: { readOnlyHint: false, untrustedContentHint: false }, execute(input) { university.value = input.university; updateRecommendation(); const isRecommended = input.district === input.recommendedDistrict; document.querySelector(`input[name="district-choice"][value="${isRecommended ? "recommended" : "other"}"]`).click(); otherDistrict.value = isRecommended ? "" : input.district; document.querySelector("#budget-min").value = input.budgetMin; document.querySelector("#budget-max").value = input.budgetMax; document.querySelector("#budget-unit").value = input.budgetUnit; document.querySelector(`input[name="living"][value="${input.living}"]`).click(); monitorEmail.value = input.email || ""; monitorFrequency.value = input.frequency || "Weekly"; form.requestSubmit(); return { status: "agents_started", district: input.district, sources: sources.map(source => source.name) }; } });
   context.registerTool({ name: "read_student_accommodation_preferences", title: "Read accommodation preferences", description: "Read the current accommodation preferences and monitoring frequency.", inputSchema: { type: "object", properties: {}, additionalProperties: false }, annotations: { readOnlyHint: true, untrustedContentHint: false }, execute() { return currentPreferences || { status: "not_completed" }; } });
 }
 

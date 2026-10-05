@@ -94,13 +94,6 @@
           </div>
         </fieldset>
 
-        <fieldset class="monitor-box">
-          <legend>Email monitor</legend>
-          <div class="field"><label for="email">Where should alerts go?</label><input id="email" name="email" type="email" autocomplete="email" placeholder="student@example.com"></div>
-          <div class="field"><label for="frequency">How often should we check?</label><select id="frequency" name="frequency"><option value="Daily">Daily</option><option value="Twice a week">Twice a week</option><option value="Weekly" selected>Weekly</option><option value="Do not monitor">Do not monitor</option></select></div>
-          <p class="field-note">No rental-site password is collected here. If a source needs sign-in, use its secure sign-in page.</p>
-        </fieldset>
-
         <p id="form-error" class="form-error" role="alert" hidden></p>
         <button class="primary-button" id="search-button" type="submit">Run TinyFish agents</button>
       </form>
@@ -133,11 +126,22 @@
             <iframe id="live-browser-frame" title="Live TinyFish browser agent" referrerpolicy="no-referrer" allow="clipboard-read; clipboard-write"></iframe>
           </section>
           <div id="source-results" class="source-results"></div>
+          <section id="monitor-offer" class="monitor-offer" hidden aria-labelledby="monitor-title">
+            <div class="monitor-kicker">After your search</div>
+            <h3 id="monitor-title">Keep watching for new matches</h3>
+            <p id="monitor-price-summary">TinyFish will reuse this search’s district, living arrangement and exact price range.</p>
+            <div class="monitor-grid">
+              <div class="field"><label for="monitor-email">Email for alerts</label><input id="monitor-email" name="monitor-email" type="email" autocomplete="email" placeholder="student@example.com"></div>
+              <div class="field"><label for="monitor-frequency">How often should TinyFish check?</label><select id="monitor-frequency" name="monitor-frequency"><option value="Daily">Daily</option><option value="Twice a week">Twice a week</option><option value="Weekly" selected>Weekly</option></select></div>
+            </div>
+            <p class="field-note">TinyFish manages email delivery in its dashboard. We save the address in your preference file, then link you there to confirm delivery.</p>
+            <button id="create-monitor" class="primary-button monitor-button" type="button">Create TinyFish monitor</button>
+            <div id="monitor-status" class="monitor-status" role="status" hidden></div>
+          </section>
           <div class="save-card">
-            <div><strong>Keep these preferences</strong><p>Download the requested Markdown file, ready to reuse or share.</p></div>
+            <div><strong>Keep these preferences</strong><p>Download the requested Markdown file, or view the copy stored inside the app.</p><a class="stored-file-link" href="/student_accommodation_preferences.md" target="_blank" rel="noreferrer">View stored preferences file</a></div>
             <button id="download-preferences" class="secondary-button" type="button">Save preferences</button>
           </div>
-          <div id="monitor-status" class="monitor-status"></div>
         </div>
       </aside>
     </section>
