@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Find and monitor student accommodation near London universities.">
+  <meta name="theme-color" content="#101b3f">
+  <title>London Student Homefinder</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,650&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%23101b3f'/%3E%3Cpath d='M12 31 32 14l20 17v20H38V38H26v13H12Z' fill='%23ff6f61'/%3E%3Ccircle cx='45' cy='19' r='6' fill='%23f6c453'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#top" aria-label="London Student Homefinder home">
+      <span class="brand-mark" aria-hidden="true">⌂</span>
+      <span>London Student Homefinder</span>
+    </a>
+    <div class="top-status"><span aria-hidden="true"></span> Searches 6 trusted sources</div>
+  </header>
+
+  <main id="top">
+    <section class="intro" aria-labelledby="page-title">
+      <div>
+        <p class="eyebrow">Your London shortlist</p>
+        <h1 id="page-title">Find a place that works for <em>student life.</em></h1>
+        <p class="intro-copy">Tell us where you study and what you need. We’ll recommend a district, prepare live rental searches and save your preferences for monitoring.</p>
+      </div>
+      <figure class="city-photo">
+        <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Percy%20Street%2C%20Fitzrovia%20-%20geograph.org.uk%20-%201091766.jpg" alt="Terraced buildings on Percy Street in Fitzrovia, London">
+        <figcaption>Central London, close to several university campuses. <a href="https://commons.wikimedia.org/wiki/File:Percy_Street,_Fitzrovia_-_geograph.org.uk_-_1091766.jpg" target="_blank" rel="noreferrer">Photo source</a></figcaption>
+      </figure>
+    </section>
+
+    <section class="workspace" aria-label="Accommodation search workspace">
+      <form id="preferences-form" class="form-panel">
+        <div class="panel-heading">
+          <span class="step-pill">Preferences</span>
+          <p>Required fields are marked <span aria-hidden="true">*</span></p>
+        </div>
+
+        <div class="field">
+          <label for="university">University <span aria-hidden="true">*</span></label>
+          <input id="university" name="university" list="universities" autocomplete="organization" placeholder="e.g. University College London" required>
+          <datalist id="universities">
+            <option value="University College London (UCL)"></option>
+            <option value="King's College London"></option>
+            <option value="Imperial College London"></option>
+            <option value="London School of Economics (LSE)"></option>
+            <option value="Queen Mary University of London"></option>
+            <option value="SOAS University of London"></option>
+            <option value="University of Westminster"></option>
+            <option value="City St George's, University of London"></option>
+            <option value="Goldsmiths, University of London"></option>
+            <option value="University of Greenwich"></option>
+          </datalist>
+          <p class="field-note">We use the university to suggest a nearby district.</p>
+        </div>
+
+        <div id="recommendation" class="recommendation" hidden aria-live="polite">
+          <div>
+            <span class="recommendation-label">Recommended district</span>
+            <strong id="recommended-district">Fitzrovia</strong>
+            <p id="recommendation-reason">A practical central base near campus.</p>
+          </div>
+          <div class="choice-row" role="radiogroup" aria-label="District choice">
+            <label><input type="radio" name="district-choice" value="recommended" checked> Use this district</label>
+            <label><input type="radio" name="district-choice" value="other"> Choose another</label>
+          </div>
+        </div>
+
+        <div id="other-district-wrap" class="field" hidden>
+          <label for="other-district">Preferred district <span aria-hidden="true">*</span></label>
+          <input id="other-district" name="other-district" placeholder="e.g. Camden, Brixton or Stratford">
+        </div>
+
+        <fieldset>
+          <legend>Budget <span aria-hidden="true">*</span></legend>
+          <div class="budget-grid">
+            <div class="field compact"><label for="budget-min">Minimum</label><div class="money-input"><span>£</span><input id="budget-min" name="budget-min" inputmode="numeric" min="0" type="number" placeholder="200" required></div></div>
+            <div class="field compact"><label for="budget-max">Maximum</label><div class="money-input"><span>£</span><input id="budget-max" name="budget-max" inputmode="numeric" min="0" type="number" placeholder="350" required></div></div>
+            <div class="field compact"><label for="budget-unit">Frequency</label><select id="budget-unit" name="budget-unit"><option value="per week">Per week</option><option value="per month">Per month</option></select></div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>How would you like to live? <span aria-hidden="true">*</span></legend>
+          <div class="option-cards">
+            <label><input type="radio" name="living" value="Live alone" required><span><b>Live alone</b><small>Studio or whole property</small></span></label>
+            <label><input type="radio" name="living" value="Share with others"><span><b>Share with others</b><small>Room in a shared home</small></span></label>
+            <label><input type="radio" name="living" value="Either"><span><b>Either</b><small>Show both kinds</small></span></label>
+          </div>
+        </fieldset>
+
+        <fieldset class="monitor-box">
+          <legend>Email monitor</legend>
+          <div class="field"><label for="email">Where should alerts go?</label><input id="email" name="email" type="email" autocomplete="email" placeholder="student@example.com"></div>
+          <div class="field"><label for="frequency">How often should we check?</label><select id="frequency" name="frequency"><option value="Daily">Daily</option><option value="Twice a week">Twice a week</option><option value="Weekly" selected>Weekly</option><option value="Do not monitor">Do not monitor</option></select></div>
+          <p class="field-note">No rental-site password is collected here. If a source needs sign-in, use its secure sign-in page.</p>
+        </fieldset>
+
+        <p id="form-error" class="form-error" role="alert" hidden></p>
+        <button class="primary-button" type="submit">Find accommodation</button>
+      </form>
+
+      <aside class="results-panel" aria-live="polite">
+        <div id="empty-state" class="empty-state">
+          <div class="map-pin" aria-hidden="true">⌂</div>
+          <h2>Your search starts here</h2>
+          <p>Complete the preferences and we’ll prepare searches across Zoopla, Rightmove, SpareRoom and student-focused sources.</p>
+          <div class="source-strip" aria-label="Search sources">
+            <span>Zoopla</span><span>Rightmove</span><span>SpareRoom</span><span>OpenRent</span><span>StuRents</span><span>OnTheMarket</span>
+          </div>
+        </div>
+
+        <div id="results" hidden>
+          <div class="results-heading">
+            <div><p class="eyebrow">Search ready</p><h2 id="results-title">Homes in Fitzrovia</h2></div>
+            <span id="results-count" class="count-badge">6 sources</span>
+          </div>
+          <div id="filter-summary" class="filter-summary"></div>
+          <div id="source-results" class="source-results"></div>
+          <div class="save-card">
+            <div><strong>Keep these preferences</strong><p>Download the requested Markdown file, ready to reuse or share.</p></div>
+            <button id="download-preferences" class="secondary-button" type="button">Save preferences</button>
+          </div>
+          <div id="monitor-status" class="monitor-status"></div>
+        </div>
+      </aside>
+    </section>
+  </main>
+
+  <footer>
+    <p>Always verify the landlord, tenancy terms, deposit protection and total monthly costs before paying anything.</p>
+  </footer>
+  <script src="./app.js"></script>
+</body>
+</html>
