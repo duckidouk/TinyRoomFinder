@@ -18,7 +18,7 @@
       <span class="brand-mark" aria-hidden="true">⌂</span>
       <span>London Student Homefinder</span>
     </a>
-    <div class="top-status"><span aria-hidden="true"></span> Searches 6 trusted sources</div>
+    <div class="top-status"><span aria-hidden="true"></span> TinyFish Agent → Fetch → Monitor</div>
   </header>
 
   <main id="top">
@@ -26,7 +26,7 @@
       <div>
         <p class="eyebrow">Your London shortlist</p>
         <h1 id="page-title">Find a place that works for <em>student life.</em></h1>
-        <p class="intro-copy">Tell us where you study and what you need. We’ll recommend a district, prepare live rental searches and save your preferences for monitoring.</p>
+        <p class="intro-copy">Tell us where you study and what you need. TinyFish searches live rental websites, downloads each listing page and can keep checking weekly.</p>
       </div>
       <figure class="city-photo">
         <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Percy%20Street%2C%20Fitzrovia%20-%20geograph.org.uk%20-%201091766.jpg" alt="Terraced buildings on Percy Street in Fitzrovia, London">
@@ -128,20 +128,21 @@
           <div id="source-results" class="source-results"></div>
           <section id="monitor-offer" class="monitor-offer" hidden aria-labelledby="monitor-title">
             <div class="monitor-kicker">After your search</div>
-            <h3 id="monitor-title">Keep watching for new matches</h3>
+            <h3 id="monitor-title">Would you like weekly updates?</h3>
             <p id="monitor-price-summary">TinyFish will reuse this search’s district, living arrangement and exact price range.</p>
             <div class="monitor-grid">
               <div class="field"><label for="monitor-email">Email for alerts</label><input id="monitor-email" name="monitor-email" type="email" autocomplete="email" placeholder="student@example.com"></div>
-              <div class="field"><label for="monitor-frequency">How often should TinyFish check?</label><select id="monitor-frequency" name="monitor-frequency"><option value="Daily">Daily</option><option value="Twice a week">Twice a week</option><option value="Weekly" selected>Weekly</option></select></div>
+              <div class="field"><label for="monitor-frequency">Update frequency</label><select id="monitor-frequency" name="monitor-frequency"><option value="Weekly" selected>Weekly</option><option value="Twice a week">Twice a week</option><option value="Daily">Daily</option></select></div>
             </div>
             <p class="field-note">TinyFish manages email delivery in its dashboard. We save the address in your preference file, then link you there to confirm delivery.</p>
-            <button id="create-monitor" class="primary-button monitor-button" type="button">Create TinyFish monitor</button>
+            <button id="create-monitor" class="primary-button monitor-button" type="button">Yes — create weekly monitor</button>
             <div id="monitor-status" class="monitor-status" role="status" hidden></div>
           </section>
           <div class="save-card">
-            <div><strong>Keep these preferences</strong><p>Download the requested Markdown file, or view the copy stored inside the app.</p><a class="stored-file-link" href="/student_accommodation_preferences.md" target="_blank" rel="noreferrer">View stored preferences file</a></div>
-            <button id="download-preferences" class="secondary-button" type="button">Save preferences</button>
+            <div><strong>Download your search</strong><p>Create a PDF containing each website, listing link, price and location.</p><a class="stored-file-link" href="/student_accommodation_preferences.md" target="_blank" rel="noreferrer">View stored preferences file</a></div>
+            <div class="save-actions"><button id="download-results-pdf" class="secondary-button" type="button" disabled>Download results PDF</button><button id="download-preferences" class="quiet-button" type="button">Save preferences</button></div>
           </div>
+          <div id="pdf-status" class="pdf-status" role="status" hidden></div>
         </div>
       </aside>
     </section>

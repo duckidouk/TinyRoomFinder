@@ -47,9 +47,12 @@ const monitorEmail = document.querySelector("#monitor-email");
 const monitorFrequency = document.querySelector("#monitor-frequency");
 const createMonitorButton = document.querySelector("#create-monitor");
 const monitorStatus = document.querySelector("#monitor-status");
+const downloadPdfButton = document.querySelector("#download-results-pdf");
+const pdfStatus = document.querySelector("#pdf-status");
 let currentPreferences = null;
 let currentSearchController = null;
 let activeRunIds = new Set();
+let currentListings = [];
 
 function getRecommendation(value) {
   return universityMap.find(item => item.test.test(value)) || { district: "Central London", reason: "We could not match the campus automatically. Choose another district if you know where you want to live." };
@@ -105,6 +108,11 @@ function prepareResults(prefs) {
     </section>`).join("");
   monitorOffer.hidden = true;
   monitorStatus.hidden = true;
+  pdfStatus.hidden = true;
+  currentListings = [];
+  downloadPdfButton.disabled = true;
+  createMonitorButton.disabled = false;
+  createMonitorButton.textContent = monitorFrequency.value === "Weekly" ? "Yes — create weekly monitor" : "Create TinyFish monitor";
   document.querySelector("#monitor-price-summary").textContent = `TinyFish will only monitor ${prefs.district} for ${prefs.living.toLowerCase()} priced £${prefs.budgetMin.toLocaleString()}–£${prefs.budgetMax.toLocaleString()} ${prefs.budgetUnit}.`;
   document.querySelector("#results").scrollIntoView({ behavior: "smooth", block: "start" });
 }
@@ -157,8 +165,15 @@ async function runSourceAgent(source, prefs, signal) {
           if (event.run_id) activeRunIds.delete(event.run_id);
           if (event.status !== "COMPLETED") throw new Error(event.error?.message || "The agent could not finish this site.");
           const result = normalizeResult(event.result ?? event.resultJson ?? event.result_json);
-          listingCount = renderListings(list, result.listings || []);
-          note.textContent = result.search_notes || (listingCount ? "Prices and details were read by the TinyFish browser agent." : "No matching listings were returned.");
+          const candidates = result.listings || [];
+          status.textContent = candidates.length ? "Fetching pages" : "No matches";
+          note.textContent = candidates.length ? `TinyFish Fetch is downloading ${candidates.length} listing page${candidates.length === 1 ? "" : "s"}…` : (result.search_notes || "No matching listings were returned.");
+          const fetchedListings = candidates.length ? await fetchListingPages(source, candidates, prefs, signal) : [];
+          currentListings.push(...fetchedListings.filter(item => item.fetch_downloaded).map(item => ({ ...item, source: source.name })));
+          downloadPdfButton.disabled = currentListings.length === 0;
+          listingCount = renderListings(list, fetchedListings, source.name);
+          const fetchedCount = fetchedListings.filter(item => item.fetch_downloaded).length;
+          note.textContent = listingCount ? `${fetchedCount} listing page${fetchedCount === 1 ? "" : "s"} downloaded with TinyFish Fetch. Prices and locations were extracted by the TinyFish browser agent.` : (result.search_notes || "No in-budget listings with verified prices were returned.");
           status.dataset.state = "complete"; status.textContent = `${listingCount} found`;
         }
       }
@@ -179,10 +194,22 @@ function weeklyBudgetRange(prefs) {
     : { min: prefs.budgetMin, max: prefs.budgetMax };
 }
 
-function renderListings(container, listings) {
+async function fetchListingPages(source, listings, prefs, signal) {
+  try {
+    const response = await fetch("/api/fetch/listings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ source: source.id, listings, preferences: prefs }), signal });
+    if (!response.ok) throw new Error(await readError(response));
+    const data = await response.json();
+    return Array.isArray(data.listings) ? data.listings : listings;
+  } catch (error) {
+    if (signal.aborted) throw error;
+    return listings.map(item => ({ ...item, fetch_downloaded: false, fetch_error: error.message || "TinyFish Fetch could not download this page." }));
+  }
+}
+
+function renderListings(container, listings, sourceName) {
   const range = weeklyBudgetRange(currentPreferences);
   const valid = listings.filter(item => item && item.url && item.title && Number.isFinite(Number(item.weekly_price_gbp)) && Number(item.weekly_price_gbp) >= range.min && Number(item.weekly_price_gbp) <= range.max); container.hidden = !valid.length;
-  container.innerHTML = valid.map(item => { const price = item.displayed_price || (item.weekly_price_gbp ? `£${Math.round(item.weekly_price_gbp)} pw` : "Price unavailable"); const meta = [item.location, item.accommodation_type, item.bills_included, item.available_from].filter(Boolean).join(" · "); return `<a class="listing-card" href="${safeUrl(item.url)}" target="_blank" rel="noreferrer"><strong>${escapeHtml(item.title)}</strong><span class="listing-price">${escapeHtml(price)}</span><span class="listing-meta">${escapeHtml(meta || "Open listing for details")}</span></a>`; }).join("");
+  container.innerHTML = valid.map(item => { const price = item.displayed_price || `£${Math.round(item.weekly_price_gbp)} pw`; const details = [item.accommodation_type, item.bills_included, item.available_from].filter(Boolean).join(" · "); const fetchLabel = item.fetch_downloaded ? "Downloaded with TinyFish Fetch" : "Agent result — open to verify"; return `<a class="listing-card" href="${safeUrl(item.url)}" target="_blank" rel="noreferrer"><strong>${escapeHtml(item.title)}</strong><span class="listing-price">${escapeHtml(price)}</span><span class="listing-meta"><b>Location:</b> ${escapeHtml(item.location || "See listing")}${details ? ` · ${escapeHtml(details)}` : ""}</span><span class="listing-proof"><span>${escapeHtml(sourceName)}</span><span>${escapeHtml(fetchLabel)}</span></span></a>`; }).join("");
   return valid.length;
 }
 
@@ -213,8 +240,26 @@ createMonitorButton.addEventListener("click", async () => {
     createMonitorButton.textContent = "Monitor created";
   } catch (error) {
     monitorStatus.dataset.state = "error"; monitorStatus.textContent = error.message || "The monitor could not be created.";
-    createMonitorButton.disabled = false; createMonitorButton.textContent = "Create TinyFish monitor";
+    createMonitorButton.disabled = false; createMonitorButton.textContent = monitorFrequency.value === "Weekly" ? "Yes — create weekly monitor" : "Create TinyFish monitor";
   }
+});
+
+monitorFrequency.addEventListener("change", () => {
+  if (!createMonitorButton.disabled) createMonitorButton.textContent = monitorFrequency.value === "Weekly" ? "Yes — create weekly monitor" : "Create TinyFish monitor";
+});
+
+downloadPdfButton.addEventListener("click", async () => {
+  if (!currentPreferences || !currentListings.length) return;
+  downloadPdfButton.disabled = true; pdfStatus.hidden = false; pdfStatus.dataset.state = ""; pdfStatus.textContent = "Creating your PDF from TinyFish Fetch results…";
+  try {
+    const response = await fetch("/api/export/pdf", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ preferences: currentPreferences, listings: currentListings }) });
+    if (!response.ok) throw new Error(await readError(response));
+    const blob = await response.blob(); const url = URL.createObjectURL(blob); const link = document.createElement("a");
+    link.href = url; link.download = "student_accommodation_results.pdf"; document.body.appendChild(link); link.click(); link.remove(); URL.revokeObjectURL(url);
+    pdfStatus.textContent = `PDF created with ${currentListings.length} TinyFish-downloaded listing${currentListings.length === 1 ? "" : "s"}.`;
+  } catch (error) {
+    pdfStatus.dataset.state = "error"; pdfStatus.textContent = error.message || "The PDF could not be created.";
+  } finally { downloadPdfButton.disabled = currentListings.length === 0; }
 });
 
 function preferencesMarkdown(prefs) {
