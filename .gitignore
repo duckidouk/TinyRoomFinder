@@ -1,3 +1,5 @@
 .DS_Store
 site-deploy.tar.gz
 *.log
+.env
+.env.local

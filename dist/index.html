@@ -102,7 +102,7 @@
         </fieldset>
 
         <p id="form-error" class="form-error" role="alert" hidden></p>
-        <button class="primary-button" type="submit">Find accommodation</button>
+        <button class="primary-button" id="search-button" type="submit">Run TinyFish agents</button>
       </form>
 
       <aside class="results-panel" aria-live="polite">
@@ -121,6 +121,17 @@
             <span id="results-count" class="count-badge">6 sources</span>
           </div>
           <div id="filter-summary" class="filter-summary"></div>
+          <div id="agent-toolbar" class="agent-toolbar" hidden>
+            <div><span class="agent-pulse" aria-hidden="true"></span><strong id="agent-summary">Starting browser agents…</strong></div>
+            <button id="stop-agents" class="stop-button" type="button">Stop search</button>
+          </div>
+          <section id="live-browser" class="live-browser" hidden aria-label="Live TinyFish browser agent">
+            <div class="live-browser-heading">
+              <div><span>Live browser</span><strong id="live-browser-source">TinyFish agent</strong></div>
+              <a id="live-browser-link" href="#" target="_blank" rel="noreferrer">Open full view</a>
+            </div>
+            <iframe id="live-browser-frame" title="Live TinyFish browser agent" referrerpolicy="no-referrer" allow="clipboard-read; clipboard-write"></iframe>
+          </section>
           <div id="source-results" class="source-results"></div>
           <div class="save-card">
             <div><strong>Keep these preferences</strong><p>Download the requested Markdown file, ready to reuse or share.</p></div>

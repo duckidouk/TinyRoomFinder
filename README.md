@@ -9,23 +9,19 @@ It asks for:
 - whether they want to live alone or share;
 - an email address and preferred monitoring frequency.
 
-The app prepares searches for Zoopla, Rightmove, SpareRoom, OpenRent, StuRents and OnTheMarket. It also downloads the completed preferences as `student_accommodation_preferences.md`.
+The app runs TinyFish browser agents inside the interface to search Zoopla, Rightmove, SpareRoom, OpenRent, StuRents and OnTheMarket. It streams live progress, shows a watchable browser view and renders actual listing prices and links. It also downloads the completed preferences as `student_accommodation_preferences.md`.
 
 ## Run locally
 
-Serve the `dist` folder with any static web server, then open the local address in a browser.
-
-For example:
-
-```sh
-python3 -m http.server 4173 --directory dist
-```
+The hosted app uses a Cloudflare Worker so the TinyFish API key remains server-side. Set `TINYFISH_API_KEY` in the runtime environment, run `node scripts/build-worker.mjs`, then preview with a Worker-compatible runtime.
 
 ## Project files
 
 - `dist/index.html` — app structure
 - `dist/styles.css` — responsive visual design
 - `dist/app.js` — recommendations, validation, search links and Markdown export
+- `scripts/build-worker.mjs` — packages the interface and TinyFish proxy into the Worker entrypoint
+- `dist/server/index.js` — generated Cloudflare Worker entrypoint
 - `student_accommodation_preferences.md` — blank preference-file template
 - `.openai/hosting.json` — private Sites deployment configuration
 
